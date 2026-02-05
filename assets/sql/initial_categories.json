@@ -1,0 +1,285 @@
+[
+  {
+    "names": {
+      "en": "Tithe",
+      "es": "Diezmo"
+    },
+    "id": "C01",
+    "icon": "volunteer_activism",
+    "color": "4C9141",
+    "type": "I"
+  },
+  {
+    "names": {
+      "en": "Offering",
+      "es": "Ofrenda"
+    },
+    "id": "C02",
+    "icon": "redeem",
+    "color": "F4A900",
+    "type": "I",
+    "subcategories": [
+      {
+        "icon": "card_giftcard",
+        "names": {
+          "en": "General",
+          "es": "General"
+        }
+      },
+      {
+        "icon": "favorite",
+        "names": {
+          "en": "Special",
+          "es": "Especial"
+        }
+      },
+      {
+        "icon": "public",
+        "names": {
+          "en": "Missions",
+          "es": "Misiones"
+        }
+      }
+    ]
+  },
+  {
+    "names": {
+      "en": "Temple Fund",
+      "es": "Pro-Templo"
+    },
+    "id": "C03",
+    "icon": "church",
+    "color": "1E2460",
+    "type": "I",
+    "subcategories": [
+      {
+        "icon": "construction",
+        "names": {
+          "en": "Construction",
+          "es": "Construcción"
+        }
+      },
+      {
+        "icon": "build",
+        "names": {
+          "en": "Repair",
+          "es": "Reparación"
+        }
+      }
+    ]
+  },
+  {
+    "names": {
+      "en": "Social Aid Received",
+      "es": "Ayuda Social Recibida"
+    },
+    "id": "C04",
+    "icon": "favorite",
+    "color": "BB4B4B",
+    "type": "I"
+  },
+  {
+    "names": {
+      "en": "Events Income",
+      "es": "Eventos (Ingreso)"
+    },
+    "id": "C05",
+    "icon": "event",
+    "color": "FF7514",
+    "type": "I",
+    "subcategories": [
+      {
+        "icon": "water_drop",
+        "names": {
+          "en": "Baptisms",
+          "es": "Bautizos"
+        }
+      },
+      {
+        "icon": "favorite",
+        "names": {
+          "en": "Weddings",
+          "es": "Bodas"
+        }
+      },
+      {
+        "icon": "hiking",
+        "names": {
+          "en": "Retreats",
+          "es": "Retiros"
+        }
+      }
+    ]
+  },
+  {
+    "names": {
+      "en": "Utilities",
+      "es": "Servicios"
+    },
+    "id": "C10",
+    "icon": "bolt",
+    "color": "2A6478",
+    "type": "E",
+    "subcategories": [
+      {
+        "icon": "bolt",
+        "names": {
+          "en": "Electricity",
+          "es": "Luz"
+        }
+      },
+      {
+        "icon": "water",
+        "names": {
+          "en": "Water",
+          "es": "Agua"
+        }
+      },
+      {
+        "icon": "language",
+        "names": {
+          "en": "Internet",
+          "es": "Internet"
+        }
+      },
+      {
+        "icon": "call",
+        "names": {
+          "en": "Phone",
+          "es": "Teléfono"
+        }
+      }
+    ]
+  },
+  {
+    "names": {
+      "en": "Maintenance",
+      "es": "Mantenimiento"
+    },
+    "id": "C11",
+    "icon": "build",
+    "color": "4E5452",
+    "type": "E",
+    "subcategories": [
+      {
+        "icon": "home",
+        "names": {
+          "en": "Building",
+          "es": "Edificio"
+        }
+      },
+      {
+        "icon": "computer",
+        "names": {
+          "en": "Equipment",
+          "es": "Equipos"
+        }
+      }
+    ]
+  },
+  {
+    "names": {
+      "en": "Social Aid",
+      "es": "Ayuda Social"
+    },
+    "id": "C12",
+    "icon": "volunteer_activism",
+    "color": "CC0605",
+    "type": "E",
+    "subcategories": [
+      {
+        "icon": "family_restroom",
+        "names": {
+          "en": "Families",
+          "es": "Familias"
+        }
+      },
+      {
+        "icon": "emergency",
+        "names": {
+          "en": "Emergencies",
+          "es": "Emergencias"
+        }
+      }
+    ]
+  },
+  {
+    "names": {
+      "en": "Salaries",
+      "es": "Sueldos"
+    },
+    "id": "C13",
+    "icon": "work",
+    "color": "3D642D",
+    "type": "E",
+    "subcategories": [
+      {
+        "icon": "person",
+        "names": {
+          "en": "Pastor",
+          "es": "Pastor"
+        }
+      },
+      {
+        "icon": "group",
+        "names": {
+          "en": "Staff",
+          "es": "Personal"
+        }
+      }
+    ]
+  },
+  {
+    "names": {
+      "en": "Supplies",
+      "es": "Insumos"
+    },
+    "id": "C14",
+    "icon": "shopping_bag",
+    "color": "84C3BE",
+    "type": "E",
+    "subcategories": [
+      {
+        "icon": "library_books",
+        "names": {
+          "en": "Office",
+          "es": "Oficina"
+        }
+      },
+      {
+        "icon": "cleaning_services",
+        "names": {
+          "en": "Cleaning",
+          "es": "Limpieza"
+        }
+      },
+      {
+        "icon": "church",
+        "names": {
+          "en": "Worship",
+          "es": "Culto"
+        }
+      }
+    ]
+  },
+  {
+    "names": {
+      "en": "Events Expense",
+      "es": "Eventos (Egreso)"
+    },
+    "id": "C15",
+    "icon": "celebration",
+    "color": "F39F18",
+    "type": "E"
+  },
+  {
+    "names": {
+      "en": "Others",
+      "es": "Otros"
+    },
+    "id": "C16",
+    "icon": "inventory_2",
+    "color": "403A3A",
+    "type": "B"
+  }
+]

@@ -1,0 +1,333 @@
+import 'package:collection/collection.dart';
+import 'package:drift/drift.dart';
+import 'package:monekin/core/database/app_db.dart';
+import 'package:monekin/core/database/services/account/account_service.dart';
+import 'package:monekin/core/database/utils/drift_utils.dart';
+import 'package:monekin/core/models/account/account.dart';
+import 'package:monekin/core/models/transaction/transaction.dart';
+import 'package:monekin/core/models/transaction/transaction_status.enum.dart';
+import 'package:monekin/core/presentation/widgets/transaction_filter/transaction_filter_set.dart';
+import 'package:monekin/core/services/firebase_sync_service.dart';
+import 'package:rxdart/rxdart.dart';
+
+import '../../../models/transaction/transaction_type.enum.dart';
+
+class TransactionQueryStatResult {
+  int numberOfRes;
+  double valueSum;
+
+  TransactionQueryStatResult({
+    required this.numberOfRes,
+    required this.valueSum,
+  });
+}
+
+typedef TransactionQueryOrderBy =
+    OrderBy Function(
+      Transactions transaction,
+      Accounts account,
+      Currencies accountCurrency,
+      Accounts receivingAccount,
+      Currencies receivingAccountCurrency,
+      Categories c,
+      Categories,
+    );
+
+class TransactionService {
+  final AppDB db;
+
+  TransactionService._(this.db);
+  static final TransactionService instance = TransactionService._(
+    AppDB.instance,
+  );
+
+  Future<int> insertTransaction(TransactionInDB transaction) async {
+    final toReturn = await db.into(db.transactions).insert(transaction);
+
+    // Push to organization collection for multi-device sync (Fire and forget)
+    FirebaseSyncService.instance.pushTransaction(transaction);
+
+    // To update the getAccountsData() function results
+    // TODO: Check why we need this. The function already listen to changes in the transactions table
+    db.markTablesUpdated([db.accounts, db.transactions]);
+    return toReturn;
+  }
+
+  Future<int> updateTransaction(TransactionInDB transaction) async {
+    final toReturn = await db.update(db.transactions).replace(transaction);
+
+    // Push to organization collection for multi-device sync (Fire and forget)
+    FirebaseSyncService.instance.pushTransaction(transaction);
+
+    // To update the getAccountsData() function results
+    // TODO: Check why we need this. The function already listen to changes in the transactions table
+    db.markTablesUpdated([db.accounts, db.transactions]);
+
+    return toReturn ? 1 : 0;
+  }
+
+  /// Updates a recurrent transaction to its next payment iteration.
+  ///
+  /// This function updates a given recurrent transaction by advancing its date
+  /// to the next scheduled payment and decrementing the remaining iterations count,
+  /// if applicable. The updated transaction is then saved to the database.
+  Future<int> setTransactionNextPayment(MoneyTransaction transaction) {
+    int? remainingIterations =
+        transaction.recurrentInfo.ruleRecurrentLimit!.remainingIterations;
+
+    return TransactionService.instance.updateTransaction(
+      transaction.copyWith(
+        date: transaction.followingDateToNext,
+        remainingTransactions: remainingIterations != null
+            ? Value(remainingIterations - 1)
+            : const Value(null),
+      ),
+    );
+  }
+
+  Future<int> deleteTransaction(String transactionId) async {
+    // Delete from organization collection for multi-device sync (Fire and forget)
+    FirebaseSyncService.instance.deleteTransaction(transactionId);
+
+    final result = await (db.delete(
+      db.transactions,
+    )..where((tbl) => tbl.id.equals(transactionId))).go();
+
+    // Notify streams watching these tables to update balance displays
+    db.markTablesUpdated([db.accounts, db.transactions]);
+
+    return result;
+  }
+
+  Stream<List<MoneyTransaction>> getTransactionsFromPredicate({
+    Expression<bool> Function(
+      Transactions,
+      Accounts,
+      Currencies,
+      Accounts,
+      Currencies,
+      Categories,
+      Categories,
+    )?
+    predicate,
+    OrderBy Function(
+      Transactions transaction,
+      Accounts account,
+      Currencies accountCurrency,
+      Accounts receivingAccount,
+      Currencies receivingAccountCurrency,
+      Categories c,
+      Categories,
+    )?
+    orderBy,
+    int? limit,
+    int? offset,
+  }) {
+    return db
+        .getTransactionsWithFullData(
+          predicate: predicate,
+          orderBy: orderBy,
+          limit: (t, a, accountCurrency, ra, receivingAccountCurrency, c, pc) =>
+              Limit(limit ?? -1, offset),
+        )
+        .watch();
+  }
+
+  /// Get transactions from the DB based on some filters.
+  ///
+  /// By default, the transactions will be returned ordered by date
+  Stream<List<MoneyTransaction>> getTransactions({
+    TransactionFilterSet? filters,
+    TransactionQueryOrderBy? orderBy,
+    int? limit,
+    int? offset,
+  }) {
+    return getTransactionsFromPredicate(
+      predicate: filters?.toTransactionExpression(),
+      orderBy:
+          orderBy ??
+          (p0, p1, p2, p3, p4, p5, p6) => OrderBy([
+            OrderingTerm(expression: p0.date, mode: OrderingMode.desc),
+          ]),
+      limit: limit,
+      offset: offset,
+    );
+  }
+
+  Stream<int> countTransactions({
+    TransactionFilterSet filters = const TransactionFilterSet(),
+    bool convertToPreferredCurrency = true,
+    DateTime? exchDate,
+  }) {
+    return _countTransactions(
+      predicate: filters,
+      convertToPreferredCurrency: convertToPreferredCurrency,
+      exchDate: exchDate,
+    ).map((event) => event.numberOfRes);
+  }
+
+  Stream<double> getTransactionsValueBalance({
+    TransactionFilterSet filters = const TransactionFilterSet(),
+    bool convertToPreferredCurrency = true,
+    DateTime? exchDate,
+  }) {
+    filters = filters.copyWith(
+      status: TransactionStatus.getStatusThatCountsForStats(filters.status),
+    );
+
+    final transactionStream = _countTransactions(
+      predicate: filters,
+      convertToPreferredCurrency: convertToPreferredCurrency,
+      exchDate: exchDate,
+    );
+
+    // If we need to convert currency, we must also listen to changes in the exchange rates table
+    // because Drift might not automatically detect the dependency in the complex subquery.
+    if (convertToPreferredCurrency) {
+      return Rx.combineLatest2(
+        transactionStream,
+        db.select(db.exchangeRates).watch(),
+        (transactionsStats, _) => transactionsStats.valueSum,
+      );
+    }
+
+    return transactionStream.map((event) => event.valueSum);
+  }
+
+  Stream<TransactionQueryStatResult> _countTransactions({
+    TransactionFilterSet predicate = const TransactionFilterSet(),
+    bool convertToPreferredCurrency = true,
+    DateTime? exchDate,
+  }) {
+    final exchangeDate = exchDate ?? DateTime.now();
+
+    if (predicate.transactionTypes == null ||
+        predicate.transactionTypes!
+            .map((e) => e.index)
+            .contains(TransactionType.transfer.index)) {
+      // If we should take into account transfers:
+      return Rx.combineLatest(
+        [
+          // INCOME AND EXPENSES
+          db
+              .countTransactions(
+                predicate: predicate
+                    .copyWith(
+                      transactionTypes:
+                          predicate.transactionTypes
+                              ?.whereNot(
+                                (element) =>
+                                    element.index ==
+                                    TransactionType.transfer.index,
+                              )
+                              .toList() ??
+                          [TransactionType.income, TransactionType.expense],
+                    )
+                    .toTransactionExpression(),
+                date: exchangeDate,
+              )
+              .watchSingle(),
+
+          // TRANSFERS FROM ORIGIN ACCOUNTS
+          db
+              .countTransactions(
+                predicate: predicate
+                    .copyWith(
+                      transactionTypes: [TransactionType.transfer],
+                      includeReceivingAccountsInAccountFilters: false,
+                    )
+                    .toTransactionExpression(),
+                date: exchangeDate,
+              )
+              .watchSingle(),
+
+          // TRANSFERS FROM DESTINY ACCOUNTS
+          db
+              .countTransactions(
+                predicate: predicate
+                    .copyWith(
+                      transactionTypes: [TransactionType.transfer],
+                      accountsIDs: null,
+                    )
+                    .toTransactionExpression(
+                      extraFilters:
+                          (
+                            transaction,
+                            account,
+                            accountCurrency,
+                            receivingAccount,
+                            receivingAccountCurrency,
+                            c,
+                            p6,
+                          ) => [
+                            if (predicate.accountsIDs != null)
+                              transaction.receivingAccountID.isIn(
+                                predicate.accountsIDs!,
+                              ),
+                          ],
+                    ),
+                date: exchangeDate,
+              )
+              .watchSingle(),
+        ],
+        (res) {
+          return TransactionQueryStatResult(
+            numberOfRes: res[0].transactionsNumber + res[1].transactionsNumber,
+            valueSum: convertToPreferredCurrency
+                ? res[0].sumInPrefCurrency -
+                      res[1].sumInPrefCurrency +
+                      res[2].sumInDestinyInPrefCurrency
+                : res[0].sum - res[1].sum + res[2].sumInDestiny,
+          );
+        },
+      );
+    }
+
+    // If we should not take into account transfers, we just return the normal sum
+    return db
+        .countTransactions(
+          predicate: predicate.toTransactionExpression(),
+          date: exchangeDate,
+        )
+        .watchSingle()
+        .map(
+          (event) => TransactionQueryStatResult(
+            numberOfRes: event.transactionsNumber,
+            valueSum: convertToPreferredCurrency
+                ? event.sumInPrefCurrency
+                : event.sum,
+          ),
+        );
+  }
+
+  Stream<MoneyTransaction?> getTransactionById(String id) {
+    return db
+        .getTransactionsWithFullData(
+          predicate:
+              (
+                transaction,
+                account,
+                accountCurrency,
+                receivingAccount,
+                receivingAccountCurrency,
+                c,
+                p6,
+              ) => transaction.id.equals(id),
+          limit: (t, a, accountCurrency, ra, receivingAccountCurrency, c, pc) =>
+              Limit(1, 0),
+        )
+        .watchSingleOrNull();
+  }
+
+  Stream<bool> checkIfCreateTransactionIsPossible() {
+    return AccountService.instance
+        .getAccounts(
+          predicate: (acc, curr) => buildDriftExpr([
+            acc.type.equalsValue(AccountType.saving).not(),
+            acc.closingDate.isNull(),
+          ]),
+          limit: 1,
+        )
+        .map((event) => event.isNotEmpty);
+  }
+}

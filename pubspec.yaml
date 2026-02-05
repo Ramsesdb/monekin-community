@@ -1,0 +1,212 @@
+name: monekin
+description: A Church Finance management tool adapted from Monekin.
+
+# For information on the generic Dart part of this file, see the
+# following page: https://dart.dev/tools/pub/pubspec
+
+publish_to: 'none'
+
+# [VersionName]+[VersionNumber] -> The version number follow the below convetion:
+#
+# XXXXX.YY.ZZZ
+#
+# The X represents the major releases, and can be up to infinity. Never start by a zero
+# The Y represents the minor releases, and can be up to 99. Always start by a zero
+# The Z represents the patch releases, and can be up to 999. Always start by a zero
+version: 1.0.0+1
+
+environment:
+  flutter: 3.35.6
+  sdk: '>=3.8.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  flutter_localizations:
+    sdk: flutter
+
+  # Firebase
+  firebase_core: ^3.3.0
+  cloud_firestore: ^5.2.1
+  firebase_auth: ^5.1.4
+  google_sign_in: ^6.2.2
+
+  # General
+  cupertino_icons: ^1.0.0
+  collection: ^1.18.0
+  equatable: ^2.0.5
+  path: ^1.8.2
+  async: ^2.10.0
+  rxdart: ^0.28.0
+  
+  # i18n
+  intl: ^0.20.2
+  slang: ^4.9.1
+  slang_flutter: ^4.4.0
+
+  # Drift
+  drift: ^2.8.1
+  path_provider: ^2.0.13
+  http: ^1.5.0
+  sqlite3: ^2.0.0
+  sqlite3_flutter_libs: ^0.5.18
+
+  # Other
+  flutter_svg: ^2.0.5
+  permission_handler: ^12.0.1
+  json_annotation: ^4.8.1
+  file_picker: ^10.3.3
+  fl_chart: ^1.1.1
+  share_plus: ^12.0.1
+  url_launcher: ^6.3.1
+  uuid: ^4.5.1
+  csv: ^6.0.0
+  dotted_border: ^3.1.0
+  package_info_plus: ^9.0.0
+  dynamic_color: ^1.7.0
+  copy_with_extension: ^10.0.1
+  freezed_annotation: ^3.1.0
+  in_app_purchase: ^3.1.11
+  flutter_colorpicker: ^1.1.0
+  smooth_page_indicator: ^1.2.1
+  another_flushbar: ^1.12.32
+  pausable_timer: ^3.1.0+3
+  bitsdojo_window: ^0.1.6
+  skeletonizer: ^2.1.2
+  shared_preferences: ^2.5.4
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  integration_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+  # Generators:
+  build_runner: 2.10.1
+  json_serializable: ^6.2.0
+  flutter_launcher_icons: ^0.14.2 # Package to regenerate icons (config later in this file). To run, type `dart run flutter_launcher_icons`
+  drift_dev: ^2.13.2
+  slang_build_runner: ^4.4.0 # To regenerate the translations run 'dart run slang'
+  copy_with_extension_gen: ^10.0.1
+  freezed: ^3.0.6
+
+flutter_launcher_icons:
+  image_path: 'assets/resources/appIcon.png'
+  android: true
+  adaptive_icon_foreground: 'assets/resources/appIcon_foreground.png'
+  adaptive_icon_background: '#0F3375'
+  ios: false
+  windows:
+    generate: true
+  macos:
+    generate: false
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/resources/
+    - assets/icons/app_onboarding/
+    - assets/icons/avatars/
+    - assets/icons/currency_flags/
+    - assets/icons/page_states/
+    - assets/icons/supported_selectable_icons/entertainment/
+    - assets/icons/supported_selectable_icons/other/
+    - assets/icons/supported_selectable_icons/money/
+    - assets/icons/supported_selectable_icons/food/
+    - assets/icons/supported_selectable_icons/medical/
+    - assets/icons/supported_selectable_icons/transport/
+    - assets/icons/supported_selectable_icons/technology/
+    - assets/icons/supported_selectable_icons/logos/financial_institutions/
+    - assets/sql/
+    - assets/sql/migrations/
+
+  # Supported app fonts. For details regarding fonts from package dependencies,
+  # see https://flutter.dev/custom-fonts/#from-packages
+
+  # For each font family, at least the following font weights should be supported:
+  #
+  # - Normal and Italic for: 300, 400, 500, 700
+  # - Only Normal for: 600
+  # -*- The app does not use: 100, 200, 800, 900 as FW, so they should not be included
+
+  fonts:
+    - family: Nunito
+      fonts:
+        - asset: assets/fonts/Nunito/Nunito-Regular.ttf
+        - asset: assets/fonts/Nunito/Nunito-Italic.ttf
+          style: italic
+        - asset: assets/fonts/Nunito/Nunito-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/Nunito/Nunito-BoldItalic.ttf
+          style: italic
+          weight: 700
+        - asset: assets/fonts/Nunito/Nunito-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Nunito/Nunito-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Nunito/Nunito-MediumItalic.ttf
+          style: italic
+          weight: 500
+        - asset: assets/fonts/Nunito/Nunito-Light.ttf
+          weight: 300
+        - asset: assets/fonts/Nunito/Nunito-LightItalic.ttf
+          style: italic
+          weight: 300
+    - family: Exo
+      fonts:
+        - asset: assets/fonts/Exo_2/Exo2-Regular.ttf
+        - asset: assets/fonts/Exo_2/Exo2-Italic.ttf
+          style: italic
+        - asset: assets/fonts/Exo_2/Exo2-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/Exo_2/Exo2-BoldItalic.ttf
+          style: italic
+          weight: 700
+        - asset: assets/fonts/Exo_2/Exo2-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Exo_2/Exo2-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Exo_2/Exo2-MediumItalic.ttf
+          style: italic
+          weight: 500
+        - asset: assets/fonts/Exo_2/Exo2-Light.ttf
+          weight: 300
+        - asset: assets/fonts/Exo_2/Exo2-LightItalic.ttf
+          style: italic
+          weight: 300
+    - family: Cairo
+      fonts:
+        - asset: assets/fonts/Cairo/Cairo-Regular.ttf
+        - asset: assets/fonts/Cairo/Cairo-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/Cairo/Cairo-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Cairo/Cairo-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Cairo/Cairo-Light.ttf
+          weight: 300
+    - family: Jost
+      fonts:
+        - asset: assets/fonts/Jost/Jost-Regular.ttf
+        - asset: assets/fonts/Jost/Jost-Italic.ttf
+          style: italic
+        - asset: assets/fonts/Jost/Jost-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/Jost/Jost-BoldItalic.ttf
+          style: italic
+          weight: 700
+        - asset: assets/fonts/Jost/Jost-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Jost/Jost-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Jost/Jost-MediumItalic.ttf
+          style: italic
+          weight: 500
+        - asset: assets/fonts/Jost/Jost-Light.ttf
+          weight: 300
+        - asset: assets/fonts/Jost/Jost-LightItalic.ttf
+          style: italic
+          weight: 300
