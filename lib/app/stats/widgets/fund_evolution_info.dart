@@ -281,7 +281,8 @@ class _FundEvolutionLineChartState extends State<FundEvolutionLineChart> {
           builder: (context, userCurrencySnapshot) {
             return Stack(
               children: [
-                LineChart(
+                RepaintBoundary(
+                  child: LineChart(
                   LineChartData(
                     gridData: FlGridData(
                       show: true,
@@ -419,6 +420,7 @@ class _FundEvolutionLineChartState extends State<FundEvolutionLineChart> {
                       ),
                     ],
                   ),
+                ),
                 ),
                 if (!snapshot.hasData)
                   Positioned.fill(

@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -7,6 +8,7 @@ import 'package:intl/intl.dart';
 import 'package:monekin/core/database/app_db.dart';
 import 'package:monekin/core/database/services/app-data/app_data_service.dart';
 import 'package:monekin/core/models/transaction/transaction.dart';
+import 'package:monekin/core/models/transaction/transaction_type.enum.dart';
 import 'package:monekin/core/utils/logger.dart';
 import 'package:path/path.dart' as path;
 
@@ -43,81 +45,82 @@ class BackupDatabaseService {
   Future<Uint8List> getDbFileInBytes() async =>
       File(await db.databasePath).readAsBytes();
 
-  String creatCsvFromTransactions(
-    List<MoneyTransaction> data, {
-    String format = 'csv',
-    String separator = ',',
-  }) {
-    var csvData = '';
+  String createCsvFromTransactions(List<MoneyTransaction> data) {
+    // UTF-8 BOM for Excel compatibility with accented chars
+    const bom = '\uFEFF';
 
-    var keys = [
-      'ID',
-      'Amount',
-      'Date',
-      'Title',
-      'Note',
-      'Account',
-      'Currency',
-      'Category',
-      'Subcategory',
+    final headers = [
+      'Fecha',
+      'Donante / Nota',
+      'Categoría',
+      'Tipo',
+      'Monto',
+      'Moneda',
+      'Cuenta',
+      'Título',
     ];
 
-    if (data.isNotEmpty) {
-      for (final key in keys) {
-        csvData += key + separator;
+    final rows = <List<dynamic>>[];
+    rows.add(headers);
+
+    final dateFormatter = DateFormat('dd/MM/yyyy HH:mm');
+
+    for (final tx in data) {
+      final categoryName = tx.category?.name ?? '';
+      final parentCategoryName = tx.category?.parentCategory?.name;
+      final fullCategory = parentCategoryName != null
+          ? '$parentCategoryName > $categoryName'
+          : categoryName;
+
+      // Sign the amount: positive for income, negative for expense
+      final isExpense = tx.type == TransactionType.expense;
+      final signedValue = isExpense ? -tx.value.abs() : tx.value.abs();
+
+      // Human-readable type
+      String typeLabel;
+      switch (tx.type) {
+        case TransactionType.income:
+          typeLabel = 'Ingreso';
+          break;
+        case TransactionType.expense:
+          typeLabel = 'Gasto';
+          break;
+        default:
+          typeLabel = 'Transferencia';
       }
+
+      rows.add([
+        dateFormatter.format(tx.date),
+        tx.notes ?? '',
+        fullCategory,
+        typeLabel,
+        signedValue.toStringAsFixed(2),
+        tx.account.currencyId,
+        tx.account.name,
+        tx.title ?? '',
+      ]);
     }
 
-    csvData += '\n';
-
-    final dateFormatter = DateFormat('yyyy-MM-dd HH:mm:ss');
-
-    for (final transaction in data) {
-      final toAdd = [
-        transaction.id,
-        transaction.value.toStringAsFixed(2),
-        dateFormatter.format(transaction.date),
-        transaction.title ?? '',
-        transaction.notes ?? '',
-        transaction.account.name,
-        transaction.account.currencyId,
-        if (transaction.isIncomeOrExpense)
-          (transaction.category!.parentCategory != null
-              ? transaction.category!.parentCategory!.name
-              : transaction.category!.name),
-        if (transaction.isTransfer) 'TRANSFER',
-        (transaction.category?.parentCategory != null
-            ? transaction.category?.name
-            : ''),
-      ];
-
-      csvData += toAdd.join(separator);
-
-      csvData += '\n';
-
-      if (transaction.isTransfer) {
-        csvData += toAdd.join(separator);
-
-        csvData += '\n';
-      }
-    }
-
-    return csvData;
+    // Use semicolon separator for Latin American Excel locales
+    return bom +
+        const ListToCsvConverter(
+          fieldDelimiter: ';',
+        ).convert(rows);
   }
 
   Future<File> exportSpreadsheet(
     String exportPath,
     List<MoneyTransaction> data,
   ) async {
-    final csvData = creatCsvFromTransactions(data);
+    final csvData = createCsvFromTransactions(data);
 
     final file = createAndReturnFile(
       exportPath: exportPath,
       fileName:
-          "Transactions-${DateFormat('yyyyMMdd-Hms').format(DateTime.now())}.csv",
+          "Monekin_Report_${DateFormat('yyyyMMdd_HHmmss').format(DateTime.now())}.csv",
     );
 
-    return file.writeAsString(csvData, mode: FileMode.writeOnly);
+    return file.writeAsString(csvData, mode: FileMode.writeOnly, encoding: const Utf8Codec());
   }
 
   Future<bool> importDatabase() async {

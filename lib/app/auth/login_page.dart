@@ -110,7 +110,7 @@ class _LoginPageState extends State<LoginPage> {
       case 'too-many-requests':
         return 'Demasiados intentos. Intenta más tarde.';
       default:
-        return 'Error de autenticación. Intenta de nuevo.';
+        return 'Error de autenticación ($code). Intenta de nuevo.';
     }
   }
 
@@ -132,7 +132,6 @@ class _LoginPageState extends State<LoginPage> {
       // v6.x: authentication is async
       final googleAuth = await googleUser.authentication;
       final credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
 

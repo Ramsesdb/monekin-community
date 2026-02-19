@@ -88,13 +88,15 @@ class _AnimatedExpandedState extends State<AnimatedExpanded>
 
   @override
   Widget build(BuildContext context) {
-    return FadeTransition(
-      opacity: fadeAnimation,
-      child: SizeTransition(
-        axis: widget.axis,
-        axisAlignment: 1.0,
-        sizeFactor: sizeAnimation,
-        child: widget.child,
+    return ClipRect(
+      child: FadeTransition(
+        opacity: fadeAnimation,
+        child: SizeTransition(
+          axis: widget.axis,
+          axisAlignment: 1.0,
+          sizeFactor: sizeAnimation,
+          child: widget.child,
+        ),
       ),
     );
   }

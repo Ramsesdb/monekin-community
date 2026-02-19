@@ -116,21 +116,35 @@ class _ExportDataPageState extends State<ExportDataPage> {
       try {
         path = await FilePicker.platform.getDirectoryPath();
       } catch (e) {
-        // Platform doesn't support directory picker, use documents directory as fallback
-        path = (await getApplicationDocumentsDirectory()).path;
+        // Platform doesn't support directory picker,
+        // use documents directory as fallback
+        path = (await getApplicationDocumentsDirectory())
+            .path;
       }
 
       if (path == null) {
-        MonekinSnackbar.info(SnackbarParams(t.backup.no_directory_selected));
-
+        MonekinSnackbar.info(
+          SnackbarParams(t.backup.no_directory_selected),
+        );
         return;
       }
 
-      final file = await _generateExportFile(path);
-
-      MonekinSnackbar.success(
-        SnackbarParams(t.backup.export.success(x: file.parent.path)),
-      );
+      try {
+        final file = await _generateExportFile(path);
+        MonekinSnackbar.success(
+          SnackbarParams(
+            t.backup.export.success(
+              x: file.parent.path,
+            ),
+          ),
+        );
+      } on PathAccessException catch (_) {
+        // Android scoped storage blocks external dirs.
+        // Fall back to temp dir + share sheet.
+        await _fallbackShareExport();
+      } on FileSystemException catch (_) {
+        await _fallbackShareExport();
+      }
     } catch (err) {
       _showErrorSnackBar('$err');
     } finally {
@@ -140,6 +154,26 @@ class _ExportDataPageState extends State<ExportDataPage> {
         });
       }
     }
+  }
+
+  /// Fallback when direct download fails due to
+  /// Android scoped storage restrictions.
+  Future<void> _fallbackShareExport() async {
+    final dir = await getTemporaryDirectory();
+    final file = await _generateExportFile(dir.path);
+    final mimeType =
+        selectedExportFormat == _ExportFormats.csv
+            ? 'text/csv'
+            : null;
+
+    await SharePlus.instance.share(
+      ShareParams(
+        files: [XFile(file.path, mimeType: mimeType)],
+        subject: selectedExportFormat == _ExportFormats.csv
+            ? t.backup.export.transactions
+            : t.backup.export.all,
+      ),
+    );
   }
 
   Widget buttonLoadingIndicator() {

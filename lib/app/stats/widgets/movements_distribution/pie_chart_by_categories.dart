@@ -255,9 +255,10 @@ class _PieChartByCategoriesState extends State<PieChartByCategories> {
               height: 260,
               child: Stack(
                 children: [
-                  PieChart(
-                    curve: Curves.easeOut,
-                    duration: const Duration(milliseconds: 250),
+                  RepaintBoundary(
+                    child: PieChart(
+                      curve: Curves.easeOut,
+                      duration: const Duration(milliseconds: 250),
                     PieChartData(
                       startDegreeOffset: -45,
                       pieTouchData: PieTouchData(
@@ -280,6 +281,7 @@ class _PieChartByCategoriesState extends State<PieChartByCategories> {
                       centerSpaceRadius: centerRadius.toDouble(),
                       sections: showingSections(dataItems),
                     ),
+                  ),
                   ),
                   Positioned.fill(
                     child: Align(

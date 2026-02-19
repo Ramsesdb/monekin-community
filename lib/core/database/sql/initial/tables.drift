@@ -2,7 +2,7 @@
 ---- * --- Remove the 'AS ....' after a table creation  
 ---- * --- Convert DATETIME to TEXT, BOOL to INT and ENUMS to TEXT
 ---- * --- Remove the MAPPED BY to only leave the CHECK constraints
----- * --- Remove the imports 
+-- Force rebuild 
 
 import './../../../models/transaction/transaction.dart';
 import './../../../models/transaction/transaction_status.enum.dart';
@@ -317,4 +317,31 @@ CREATE TABLE IF NOT EXISTS userSettings (
 CREATE TABLE IF NOT EXISTS appData (
   appDataKey ENUMNAME(AppDataKey) NOT NULL PRIMARY KEY,
   appDataValue TEXT
+);
+
+CREATE TABLE IF NOT EXISTS auditLogs (
+  id TEXT NOT NULL PRIMARY KEY,
+  
+  -- The type of entity being modified (e.g. 'thought', 'account')
+  entityType TEXT NOT NULL,
+  
+  -- The ID of the entity being modified
+  entityId TEXT NOT NULL,
+  
+  -- JSON string representing the state of the entity BEFORE the change (null for CREATE)
+  previousValue TEXT,
+  
+  -- JSON string representing the state of the entity AFTER the change (null for DELETE)
+  newValue TEXT,
+  
+  -- ID of the user who performed the action
+  userId TEXT,
+  
+  -- Email of the user who performed the action
+  userEmail TEXT,
+  
+  -- When the action occurred
+  timestamp DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+  [action] TEXT NOT NULL
 );

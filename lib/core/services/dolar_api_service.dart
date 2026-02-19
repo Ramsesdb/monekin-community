@@ -90,7 +90,9 @@ class DolarApiService {
     }
   }
 
-  /// Fetch only the official rate
+  /// Fetch only the official rate.
+  ///
+  /// Returns the cached rate if the API call fails (offline fallback).
   Future<DolarApiRate?> fetchOficialRate() async {
     try {
       final response = await http.get(
@@ -99,14 +101,20 @@ class DolarApiService {
       ).timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
-        final rate = DolarApiRate.fromJson(json.decode(response.body));
+        final rate = DolarApiRate.fromJson(
+          json.decode(response.body),
+        );
         _oficialRate = rate;
+        _lastFetch = DateTime.now();
         return rate;
       }
     } catch (e) {
-      Logger.printDebug('DolarApi: Exception fetching oficial rate: $e');
+      Logger.printDebug(
+        'DolarApi: Exception fetching oficial rate: $e',
+      );
     }
-    return null;
+    // Fallback to cached rate if available
+    return _oficialRate;
   }
 
   /// Fetch only the parallel rate
@@ -118,19 +126,28 @@ class DolarApiService {
       ).timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
-        final rate = DolarApiRate.fromJson(json.decode(response.body));
+        final rate = DolarApiRate.fromJson(
+          json.decode(response.body),
+        );
         _paraleloRate = rate;
+        _lastFetch = DateTime.now();
         return rate;
       }
     } catch (e) {
-      Logger.printDebug('DolarApi: Exception fetching paralelo rate: $e');
+      Logger.printDebug(
+        'DolarApi: Exception fetching paralelo rate: $e',
+      );
     }
-    return null;
+    return _paraleloRate;
   }
+
+  /// When was the last successful fetch?
+  DateTime? get lastFetchTime => _lastFetch;
 
   /// Check if rates are stale (older than 1 hour)
   bool get isStale {
     if (_lastFetch == null) return true;
-    return DateTime.now().difference(_lastFetch!) > const Duration(hours: 1);
+    return DateTime.now().difference(_lastFetch!) >
+        const Duration(hours: 1);
   }
 }

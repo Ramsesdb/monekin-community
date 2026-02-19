@@ -159,7 +159,6 @@ class _SignupPageState extends State<SignupPage> {
       // v6.x: authentication is async
       final googleAuth = await googleUser.authentication;
       final credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
 

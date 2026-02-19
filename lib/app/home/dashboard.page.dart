@@ -1,3 +1,4 @@
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -32,6 +33,7 @@ import 'package:skeletonizer/skeletonizer.dart';
 
 import '../../core/models/transaction/transaction_type.enum.dart';
 import '../../core/presentation/app_colors.dart';
+import 'package:monekin/app/reports/pages/settlement_report_page.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -43,7 +45,6 @@ class DashboardPage extends StatefulWidget {
 class _DashboardPageState extends State<DashboardPage> {
   DatePeriodState dateRangeService = const DatePeriodState();
   final ScrollController _scrollController = ScrollController();
-  bool showSmallHeader = false;
 
   late Stream<double> _balanceVariationStream;
   late Stream<double> _totalBalanceStream;
@@ -52,60 +53,49 @@ class _DashboardPageState extends State<DashboardPage> {
   void initState() {
     super.initState();
 
-    _scrollController.addListener(() {
-      _setSmallHeaderVisible();
-    });
+    _balanceVariationStream = AccountService.instance
+        .getAccounts()
+        .switchMap(
+          (accounts) =>
+              AccountService.instance.getAccountsMoneyVariation(
+            accounts: accounts,
+            startDate: dateRangeService.startDate,
+            endDate: dateRangeService.endDate,
+            convertToPreferredCurrency: true,
+          ),
+        );
 
-    _balanceVariationStream = AccountService.instance.getAccounts().switchMap(
-      (accounts) => AccountService.instance.getAccountsMoneyVariation(
-        accounts: accounts,
-        startDate: dateRangeService.startDate,
-        endDate: dateRangeService.endDate,
-        convertToPreferredCurrency: true,
-      ),
-    );
-
-    // Cache the total balance stream to ensure it receives updates
     _totalBalanceStream = AccountService.instance.getAccountsMoney();
   }
 
   @override
   void dispose() {
-    _scrollController.removeListener(_setSmallHeaderVisible);
     _scrollController.dispose();
     super.dispose();
   }
 
-  void _setSmallHeaderVisible() {
-    final scrollLimit = _isIncomeExpenseAtSameLevel(context) ? 150 : 200;
-
-    final shouldShowSmallHeader =
-        _scrollController.position.pixels > scrollLimit;
-    if (showSmallHeader != shouldShowSmallHeader) {
-      setState(() {
-        showSmallHeader = shouldShowSmallHeader;
-      });
-    }
-  }
-
   bool _isIncomeExpenseAtSameLevel(BuildContext context) {
-    return BreakPoint.of(context).isLargerOrEqualTo(BreakpointID.sm);
+    return BreakPoint.of(context)
+        .isLargerOrEqualTo(BreakpointID.sm);
   }
 
   /// Refresh data streams when user pulls down
   Future<void> _refreshData() async {
     setState(() {
-      _balanceVariationStream = AccountService.instance.getAccounts().switchMap(
-        (accounts) => AccountService.instance.getAccountsMoneyVariation(
-          accounts: accounts,
-          startDate: dateRangeService.startDate,
-          endDate: dateRangeService.endDate,
-          convertToPreferredCurrency: true,
-        ),
-      );
-      _totalBalanceStream = AccountService.instance.getAccountsMoney();
+      _balanceVariationStream = AccountService.instance
+          .getAccounts()
+          .switchMap(
+            (accounts) =>
+                AccountService.instance.getAccountsMoneyVariation(
+              accounts: accounts,
+              startDate: dateRangeService.startDate,
+              endDate: dateRangeService.endDate,
+              convertToPreferredCurrency: true,
+            ),
+          );
+      _totalBalanceStream =
+          AccountService.instance.getAccountsMoney();
     });
-    // Small delay for visual feedback
     await Future.delayed(const Duration(milliseconds: 300));
   }
 
@@ -118,60 +108,80 @@ class _DashboardPageState extends State<DashboardPage> {
       enableAppBar: false,
       appBarBackgroundColor:
           BreakPoint.of(context).isLargerOrEqualTo(BreakpointID.md)
-          ? Colors.transparent
-          : AppColors.of(context).consistentPrimary,
+              ? Colors.transparent
+              : AppColors.of(context).consistentPrimary,
       floatingActionButton: ifIsInTabs(context)
           ? null
           : NewTransactionButton(
-              key: const Key('dashboard--new-transaction-button'),
+              key: const Key(
+                'dashboard--new-transaction-button',
+              ),
               scrollController: _scrollController,
             ),
-      body: Stack(
-        children: [
-          RefreshIndicator(
-            onRefresh: _refreshData,
-            child: SingleChildScrollView(
-              controller: _scrollController,
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.only(bottom: 24),
-              child: Column(
-              children: [
-                buildDashboadHeader(context, accountService),
+      body: RefreshIndicator(
+        onRefresh: _refreshData,
+        child: SingleChildScrollView(
+          controller: _scrollController,
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.only(bottom: 80),
+          child: Column(
+            children: [
+              // ── Big header (scrolls away naturally) ──
+              buildDashboadHeader(context, accountService),
 
-                HorizontalScrollableAccountList(
+              HorizontalScrollableAccountList(
+                dateRangeService: dateRangeService,
+              ),
+
+              // ── Stats Cards ──
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                ),
+                child: DashboardCards(
                   dateRangeService: dateRangeService,
                 ),
+              ),
 
-                // ------------- STATS GENERAL CARDS --------------
-                Padding(
-                  padding: const EdgeInsets.only(left: 12, right: 12, top: 0),
-                  child: DashboardCards(dateRangeService: dateRangeService),
+              if (kDebugMode)
+                TextButton(
+                  onPressed: () {
+                    RouteUtils.pushRoute(const DebugPage());
+                  },
+                  child: const Text('DEBUG PAGE'),
                 ),
 
-                if (kDebugMode)
-                  TextButton(
-                    onPressed: () {
-                      RouteUtils.pushRoute(const DebugPage());
-                    },
-                    child: const Text('DEBUG PAGE'),
+              // ── Church Edition: Settlement Report ──
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                ),
+                child: FilledButton.icon(
+                  onPressed: () {
+                    RouteUtils.pushRoute(
+                      const SettlementReportPage(),
+                    );
+                  },
+                  icon: const Icon(
+                    Icons.account_balance_wallet,
                   ),
-              ],
-            ),
+                  label: const Text('LIQUIDACIÓN'),
+                  style: FilledButton.styleFrom(
+                    padding: const EdgeInsets.all(16),
+                    backgroundColor: AppColors.of(context)
+                        .consistentPrimary,
+                    foregroundColor: AppColors.of(context)
+                        .onConsistentPrimary,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: AnimatedExpanded(
-              expand: showSmallHeader,
-              child: buildSmallHeader(context),
-            ),
-          ),
-        ],
       ),
     );
   }
+
 
   Widget buildDashboadHeader(
     BuildContext context,
@@ -385,6 +395,7 @@ class _DashboardPageState extends State<DashboardPage> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Column(
+              mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
@@ -401,7 +412,10 @@ class _DashboardPageState extends State<DashboardPage> {
                       child: Builder(
                         builder: (context) {
                           if (!snapshot.hasData) {
-                            return Text('9999', style: TextStyle(fontSize: 22));
+                            return Text(
+                              '9999',
+                              style: TextStyle(fontSize: 22),
+                            );
                           }
 
                           return CurrencyDisplayer(
@@ -411,11 +425,15 @@ class _DashboardPageState extends State<DashboardPage> {
                                   snapshot.data! >= 10000000 &&
                                       BreakPoint.of(
                                         context,
-                                      ).isSmallerOrEqualTo(BreakpointID.xs)
+                                      ).isSmallerOrEqualTo(
+                                        BreakpointID.xs,
+                                      )
                                   ? 22
                                   : 26,
                               fontWeight: FontWeight.bold,
-                              color: AppColors.of(context).onConsistentPrimary,
+                              color: AppColors.of(
+                                context,
+                              ).onConsistentPrimary,
                             ),
                           );
                         },
@@ -565,4 +583,5 @@ class _DashboardPageState extends State<DashboardPage> {
 }
 
 Color onHeaderSmallTextColor(BuildContext context) =>
+    // ignore: deprecated_member_use
     AppColors.of(context).onConsistentPrimary.withOpacity(0.9);
